@@ -1,26 +1,40 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import grapesjs from 'grapesjs';
 import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
+import { motion } from 'framer-motion';
 
-// CRITICAL: Force Vite to keep plugin imports (prevent tree-shaking)
+// Force plugin imports
 import 'grapesjs-preset-webpage';
 import 'grapesjs-blocks-basic';
 import 'grapesjs-plugin-forms';
-// Dummy usage to force Vite to include these plugins
 const dummy = window.GrapesjsPresetWebpage || window.GrapesjsBlocksBasic || window.GrapesjsPluginForms || undefined;
 console.log('🔌 Plugins loaded:', dummy);
 
 import { templates } from '../plugins/templates/blocks.js';
+import TopBar from '../components/ui/TopBar';
+import BottomBar from '../components/ui/BottomBar';
+import Sidebar from '../components/ui/Sidebar';
+import RightPanel from '../components/ui/RightPanel';
+import CanvasWrapper from '../components/ui/CanvasWrapper';
 
-/**
- * Editor Component - GrapesJS Integration
- * Delays block registration until 'load' event with manual sidebar fallback
- * Includes internal template library (Hero, About, Features, CTA, Footer)
- */
 export default function Editor() {
   const containerRef = useRef(null);
+  const editorRef = useRef(null);
+  const [isDark, setIsDark] = useState(() => {
+    return localStorage.getItem('citybuilder-dark-mode') === 'true';
+  });
+  const [deviceView, setDeviceView] = useState('desktop');
+  const [zoom, setZoom] = useState(100);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
 
+  // Save dark mode preference
+  useEffect(() => {
+    localStorage.setItem('citybuilder-dark-mode', isDark);
+  }, [isDark]);
+
+  // Initialize GrapesJS
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -42,118 +56,75 @@ export default function Editor() {
       ],
     });
 
+    editorRef.current = editor;
+
     // Set initial content
     editor.setComponents(`
       <div style="padding: 100px; text-align: center; background: #f9fafb;">
-        <h1 style="color: #4f46e5; font-size: 2.5rem; margin-bottom: 1rem; font-weight: bold;">
-          CityBuilder Editor LIVE di Netlify!
+        <h1 style="color: #6366f1; font-size: 2.5rem; margin-bottom: 1rem; font-weight: bold;">
+          🏗️ CityBuilder Premium
         </h1>
-        <p style="font-size: 1.2rem; color: #4b5563; line-height: 1.6;">
-          Drag block dari sidebar kiri sekarang.<br/>
-          Edit text inline, tambah image/button/columns.
+        <p style="font-size: 1.1rem; color: #6b7280; line-height: 1.6;">
+          Drag blocks from the sidebar to start building.<br/>
+          Edit inline, customize with the right panel, export when ready.
         </p>
       </div>
     `);
 
-    // Wait for load event - delay all registration
+    // Wait for load event
     editor.on('load', () => {
       console.log('✅ Load event fired - registering blocks & categories');
 
-      // CRITICAL: Check if Categories exists before adding
       if (editor.Categories && typeof editor.Categories.add === 'function') {
         try {
-          editor.Categories.add({ 
-            id: 'basic', 
-            label: 'Basic Blocks', 
-            open: true 
-          });
-          console.log('✅ Category created: basic');
+          editor.Categories.add({ id: 'basic', label: 'Basic Blocks', open: true });
+          editor.Categories.add({ id: 'templates', label: 'Templates', open: true });
+          console.log('✅ Categories created');
         } catch (e) {
-          console.warn('⚠️ Category creation error:', e.message);
+          console.warn('⚠️ Category error:', e.message);
         }
+      }
 
+      // Register basic blocks
+      ['text-block', 'image-block', 'button-block', 'section-block', 'columns-block'].forEach(blockId => {
         try {
-          editor.Categories.add({ 
-            id: 'templates', 
-            label: 'Templates', 
-            open: true 
-          });
-          console.log('✅ Category created: templates');
+          const blockData = {
+            'text-block': {
+              label: 'Text',
+              content: '<p style="color: #333; padding: 10px;">Text block</p>',
+              category: 'basic',
+            },
+            'image-block': {
+              label: 'Image',
+              content: '<img src="https://picsum.photos/400/300?random=' + Math.random() + '" style="width: 100%; height: auto;">',
+              category: 'basic',
+            },
+            'button-block': {
+              label: 'Button',
+              content: '<button style="padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer;">Click me</button>',
+              category: 'basic',
+            },
+            'section-block': {
+              label: 'Section',
+              content: '<section style="padding: 40px 20px; background: #f0f0f0; min-height: 200px;"><h2 style="color: #6366f1;">Section</h2></section>',
+              category: 'basic',
+            },
+            'columns-block': {
+              label: 'Columns',
+              content: '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"><div style="padding: 20px; background: #f9f9f9;">Col 1</div><div style="padding: 20px; background: #f9f9f9;">Col 2</div></div>',
+              category: 'basic',
+            },
+          };
+          editor.BlockManager.add(blockId, blockData[blockId]);
+          console.log('✅ Block added:', blockId);
         } catch (e) {
-          console.warn('⚠️ Templates category error:', e.message);
+          console.warn('⚠️ Block error:', e.message);
         }
-      } else {
-        console.warn('⚠️ Categories API not available - plugins may not have loaded');
-      }
+      });
 
-      // Register text block
-      try {
-        editor.BlockManager.add('text-block', {
-          label: 'Text',
-          content: '<p style="color: #333; padding: 10px;">Text block - double click to edit</p>',
-          category: 'basic',
-        });
-        console.log('✅ Block added: text-block');
-      } catch (e) {
-        console.warn('⚠️ Text block error:', e.message);
-      }
-
-      // Register image block
-      try {
-        editor.BlockManager.add('image-block', {
-          label: 'Image',
-          content: '<img src="https://picsum.photos/400/300?random=' + Math.random() + '" alt="Random Image" style="width: 100%; height: auto;">',
-          category: 'basic',
-        });
-        console.log('✅ Block added: image-block');
-      } catch (e) {
-        console.warn('⚠️ Image block error:', e.message);
-      }
-
-      // Register button block
-      try {
-        editor.BlockManager.add('button-block', {
-          label: 'Button',
-          content: '<button style="padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Click me</button>',
-          category: 'basic',
-        });
-        console.log('✅ Block added: button-block');
-      } catch (e) {
-        console.warn('⚠️ Button block error:', e.message);
-      }
-
-      // Register section block
-      try {
-        editor.BlockManager.add('section-block', {
-          label: 'Section',
-          content: '<section style="padding: 40px 20px; background: #f0f0f0; border: 1px dashed #ccc; min-height: 200px;"><h2 style="color: #4f46e5;">Section Title</h2><p>Add your content here</p></section>',
-          category: 'basic',
-        });
-        console.log('✅ Block added: section-block');
-      } catch (e) {
-        console.warn('⚠️ Section block error:', e.message);
-      }
-
-      // Register columns block
-      try {
-        editor.BlockManager.add('columns-block', {
-          label: 'Columns (2)',
-          content: `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-              <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ddd;"><p>Column 1</p></div>
-              <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ddd;"><p>Column 2</p></div>
-            </div>
-          `,
-          category: 'basic',
-        });
-        console.log('✅ Block added: columns-block');
-      } catch (e) {
-        console.warn('⚠️ Columns block error:', e.message);
-      }
-
-      // Load template blocks from library
+      // Load template blocks
       console.log(`📚 Loading ${templates.length} template blocks...`);
-      templates.forEach((templateBlock) => {
+      templates.forEach(templateBlock => {
         try {
           editor.BlockManager.add(templateBlock.id, {
             label: templateBlock.label,
@@ -161,270 +132,128 @@ export default function Editor() {
             category: templateBlock.category || 'templates',
           });
         } catch (e) {
-          console.warn(`⚠️ Template block error [${templateBlock.id}]:`, e.message);
+          console.warn(`⚠️ Template error [${templateBlock.id}]:`, e.message);
         }
       });
-      console.log(`✅ Templates library loaded: ${templates.length} blocks`);
-      const templateCount = templates.filter(t => t.category).reduce((acc, t) => {
-        const category = t.category;
-        acc[category] = (acc[category] || 0) + 1;
-        return acc;
-      }, {});
-      console.log('📊 Template breakdown by category:', templateCount);
+      console.log(`✅ Templates loaded: ${templates.length} blocks`);
 
-      // Force block manager render
       setTimeout(() => {
         try {
           editor.BlockManager.render();
-          console.log('✅ BlockManager.render() called');
+          console.log('✅ BlockManager rendered');
         } catch (e) {
-          console.warn('⚠️ BlockManager.render() error:', e.message);
+          console.warn('⚠️ Render error:', e.message);
         }
       }, 200);
-
-      // CRITICAL: Force sidebar catalog visible and try multiple selectors
-      setTimeout(() => {
-        try {
-          const frameEl = editor.Canvas.getFrameEl();
-          if (frameEl && frameEl.contentDocument) {
-            // Try multiple selectors for the catalog
-            const catalogSelectors = [
-              '.gjs-blocks-catalog',
-              '[data-gjs-blocks="content"]',
-              '.gjs-blocks',
-              '[class*="catalog"]'
-            ];
-            
-            let foundCatalog = null;
-            for (const selector of catalogSelectors) {
-              foundCatalog = frameEl.contentDocument.querySelector(selector);
-              if (foundCatalog) {
-                console.log('✅ Catalog found with selector:', selector);
-                break;
-              }
-            }
-            
-            if (foundCatalog) {
-              foundCatalog.style.display = 'block !important';
-              foundCatalog.style.visibility = 'visible !important';
-              foundCatalog.style.opacity = '1 !important';
-              console.log('✅ Sidebar catalog forced visible');
-            } else {
-              console.warn('⚠️ Sidebar catalog not found in frame - blocks appending to #blocks-panel directly');
-              // The panel fallback in JSX will handle display
-            }
-          }
-        } catch (e) {
-          console.warn('⚠️ Catalog visibility error:', e.message);
-        }
-      }, 500);
-
-      // Log all blocks
-      setTimeout(() => {
-        const allBlocks = editor.BlockManager.getAll();
-        const blocksList = allBlocks.map(b => `${b.id}: ${b.label}`);
-        console.log('📦 All blocks after load:', blocksList);
-        console.log('📊 Total blocks: 5 basic + ' + templates.length + ' templates = ' + allBlocks.length);
-        console.log('✅ Editor ready for drag & drop');
-      }, 800);
     });
 
-    // Log events
-    editor.on('plugin:loaded', (p) => {
-      console.log('✅ Plugin loaded:', p.id);
-    });
-
-    editor.on('plugin:error', (err) => {
-      console.error('❌ Plugin error:', err);
-    });
-
-    editor.on('block:drag:start', (block) => {
-      console.log('👉 Block drag start:', block.label || block.id);
-    });
-
-    editor.on('block:drag:stop', (block, ev) => {
-      console.log('✅ Block drag stop:', block?.label || block?.id || 'unknown');
-    });
-
-    // Test export ZIP button
-    setTimeout(() => {
+    // Export ZIP handler
+    const handleExportZip = async () => {
       try {
-        const exportBtn = document.createElement('button');
-        exportBtn.id = 'export-zip-btn';
-        exportBtn.innerText = '⬇ Export ZIP';
-        exportBtn.style.cssText = `
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          padding: 10px 20px;
-          background: #667eea;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-          font-size: 14px;
-          z-index: 10000;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        `;
-        
-        exportBtn.onclick = async () => {
-          try {
-            console.log('📦 Exporting to ZIP...');
-            exportBtn.disabled = true;
-            exportBtn.innerText = '⏳ Exporting...';
-            
-            const zip = new JSZip();
-            const html = editor.getHtml();
-            const css = editor.getCss();
-            const js = editor.getJs();
-            
-            // Create comprehensive index.html
-            const fullHtml = `<!DOCTYPE html>
+        console.log('📦 Exporting to ZIP...');
+        const zip = new JSZip();
+        const html = editor.getHtml();
+        const css = editor.getCss();
+        const js = editor.getJs();
+
+        const fullHtml = `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Website created with CityBuilder">
   <title>CityBuilder Export</title>
-  <style>
-${css}
-  </style>
+  <style>${css}</style>
 </head>
 <body>
 ${html}
-  <script>
-${js}
-  </script>
+  <script>${js}</script>
 </body>
 </html>`;
-            
-            zip.file('index.html', fullHtml);
-            zip.file('style.css', css);
-            if (js && js.trim().length > 0) {
-              zip.file('script.js', js);
-            }
-            zip.file('README.md', `# Website exported from CityBuilder
 
-This is a clean, production-ready website exported from CityBuilder.
+        zip.file('index.html', fullHtml);
+        zip.file('style.css', css);
+        if (js && js.trim().length > 0) zip.file('script.js', js);
+        zip.file('README.md', `# Website created with CityBuilder\n\nBuilt with ❤️`);
 
-## Files
-- **index.html** - Main HTML file with embedded styles and scripts
-- **style.css** - Standalone CSS (also embedded in index.html)
-- **script.js** - JavaScript functionality (if any)
-
-## How to use
-1. Open \`index.html\` in your browser to view the website
-2. Edit HTML/CSS as needed in your preferred editor
-3. Upload to any web hosting service (GitHub Pages, Netlify, Vercel, etc.)
-
-## Notes
-- All styles are included inline in HTML for simplicity
-- Images used are from external CDNs (check image URLs if offline)
-- No build process required - files work as-is
-
-Made with ❤️ by CityBuilder`);
-            
-            const blob = await zip.generateAsync({ type: 'blob' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'citybuilder-export-' + new Date().toISOString().slice(0, 10) + '.zip';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            console.log('✅ ZIP exported successfully - HTML size:', fullHtml.length, 'bytes');
-            exportBtn.disabled = false;
-            exportBtn.innerText = '⬇ Export ZIP';
-          } catch (err) {
-            console.error('❌ Export error:', err);
-            exportBtn.disabled = false;
-            exportBtn.innerText = '⬇ Export ZIP';
-            alert('Export failed: ' + err.message);
-          }
-        };
-        
-        document.body.appendChild(exportBtn);
-        
-        // Test reset tour button
-        const resetBtn = document.createElement('button');
-        resetBtn.id = 'reset-tour-btn';
-        resetBtn.innerText = '🔄 Reset Tour';
-        resetBtn.style.cssText = `
-          position: fixed;
-          top: 20px;
-          right: 180px;
-          padding: 10px 20px;
-          background: #f59e0b;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-          font-size: 14px;
-          z-index: 10000;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        `;
-        
-        resetBtn.onclick = () => {
-          localStorage.removeItem('citybuilder-tour-seen');
-          console.log('🔄 Tour reset - localStorage cleared');
-          window.location.reload();
-        };
-        
-        document.body.appendChild(resetBtn);
-        
-        console.log('✅ Export ZIP button added to page');
-        console.log('✅ Reset tour button added to page');
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'citybuilder-' + new Date().toISOString().slice(0, 10) + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        console.log('✅ ZIP exported successfully');
       } catch (err) {
-        console.warn('⚠️ Export button setup error:', err.message);
+        console.error('❌ Export error:', err);
+        alert('Export failed: ' + err.message);
       }
-    }, 1000);
+    };
+
+    // Store handler for later use
+    window.citybuilderExport = handleExportZip;
 
     return () => {
       console.log('🧹 Destroying editor...');
       editor.destroy();
+      editorRef.current = null;
     };
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', background: '#ffffff' }}>
-      {/* Left sidebar: Block catalog */}
-      <div 
-        id="blocks-panel" 
-        style={{ 
-          width: '280px',
-          background: '#f8f9fa',
-          borderRight: '1px solid #e5e7eb',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          flexShrink: 0,
-          boxSizing: 'border-box'
-        }}
-      >
-        {/* Fallback manual blocks if catalog fails */}
-        <div style={{ padding: '12px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>
-            Basic Blocks
-          </h3>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>
-            GrapesJS blocks panel loading...
-          </div>
-        </div>
-      </div>
+    <div className={`${isDark ? 'dark' : ''}`}>
+      <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white min-h-screen overflow-hidden">
+        {/* Top Bar */}
+        <TopBar
+          isDark={isDark}
+          setIsDark={setIsDark}
+          deviceView={deviceView}
+          setDeviceView={setDeviceView}
+          onExport={() => window.citybuilderExport?.()}
+          onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          onPanelToggle={() => setIsRightPanelOpen(!isRightPanelOpen)}
+        />
 
-      {/* Main editor container */}
-      <div 
-        ref={containerRef} 
-        style={{ 
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#ffffff'
-        }} 
-      />
+        {/* Main Layout */}
+        <div className="flex h-screen pt-16 pb-16">
+          {/* Sidebar */}
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+          />
+
+          {/* Canvas Area */}
+          <div className="flex-1 hidden lg:flex">
+            <CanvasWrapper
+              containerRef={containerRef}
+              deviceView={deviceView}
+              zoom={zoom}
+            />
+          </div>
+
+          {/* Mobile Canvas */}
+          <div className="flex-1 lg:hidden">
+            <div className="h-full overflow-auto bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                ref={containerRef}
+                className="bg-white dark:bg-slate-900 rounded-xl min-h-full"
+              />
+            </div>
+          </div>
+
+          {/* Right Panel */}
+          <RightPanel
+            isOpen={isRightPanelOpen}
+            onClose={() => setIsRightPanelOpen(false)}
+          />
+        </div>
+
+        {/* Bottom Bar */}
+        <BottomBar zoom={zoom} onZoom={setZoom} />
+      </div>
     </div>
   );
 }

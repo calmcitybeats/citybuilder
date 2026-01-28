@@ -1,14 +1,36 @@
-// Tailwind v4 with @tailwindcss/vite plugin doesn't require config for basic usage
-// Uncomment and customize below only if you need custom theme/plugins
-/*
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      colors: {
+        primary: '#6366f1',
+        secondary: '#8b5cf6',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.3s ease-in-out',
+        'slide-in': 'slideIn 0.3s ease-in-out',
+        'scale-in': 'scaleIn 0.2s ease-in-out',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideIn: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+        scaleIn: {
+          '0%': { transform: 'scale(0.95)' },
+          '100%': { transform: 'scale(1)' },
+        },
+      },
+    },
   },
   plugins: [],
 }
-*/
-
-// For now, using default Tailwind v4 configuration
