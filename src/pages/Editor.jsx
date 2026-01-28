@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
+import 'grapesjs-preset-webpage';
+import 'grapesjs-blocks-basic';
+import 'grapesjs-plugin-forms';
 
 /**
  * Editor Component - GrapesJS Integration
- * Forces block catalog rendering with manual category assignment
+ * Forces sidebar block catalog to render with custom panel
  */
 export default function Editor() {
   const containerRef = useRef(null);
@@ -12,14 +15,7 @@ export default function Editor() {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    console.log('🚀 Initializing GrapesJS editor...');
-
-    // Dynamic import plugins to force load
-    Promise.all([
-      import('grapesjs-preset-webpage').then(() => console.log('✅ preset-webpage loaded dynamic')),
-      import('grapesjs-blocks-basic').then(() => console.log('✅ blocks-basic loaded dynamic')),
-      import('grapesjs-plugin-forms').then(() => console.log('✅ plugin-forms loaded dynamic')),
-    ]).catch(err => console.error('❌ Dynamic import error:', err));
+    console.log('🚀 Initializing GrapesJS editor with sidebar...');
 
     const editor = grapesjs.init({
       container: containerRef.current,
@@ -27,6 +23,11 @@ export default function Editor() {
       height: '100%',
       width: '100%',
       storageManager: false,
+      // Config block manager to use custom panel
+      blockManager: {
+        appendTo: '#blocks-panel',
+        sectors: ['basic'],
+      },
       plugins: [
         'grapesjs-preset-webpage',
         'grapesjs-blocks-basic',
@@ -47,34 +48,10 @@ export default function Editor() {
       </div>
     `);
 
-    // Log plugin events
-    editor.on('plugin:loaded', (p) => {
-      console.log('✅ Plugin loaded:', p.id);
-    });
+    // Manual category that will be visible
+    editor.Categories.add({ id: 'basic', label: 'Basic Blocks', open: true });
 
-    editor.on('plugin:error', (err) => {
-      console.error('❌ Plugin error:', err);
-    });
-
-    // Log render events
-    editor.on('block:render', () => {
-      console.log('📦 Block rendered');
-    });
-
-    editor.on('block-manager:render', () => {
-      console.log('📦 Block manager rendered');
-    });
-
-    // Log block drag events
-    editor.on('block:drag:start', (block) => {
-      console.log('👉 Block drag start:', block.label || block.id);
-    });
-
-    editor.on('block:drag:stop', (block) => {
-      console.log('✅ Block drag stop:', block.label || block.id);
-    });
-
-    // Register manual blocks (fallback if plugins fail)
+    // Register manual blocks
     editor.BlockManager.add('text-block', {
       label: 'Text',
       content: '<p style="color: #333;">Text block - double click to edit</p>',
@@ -115,63 +92,75 @@ export default function Editor() {
       attributes: { class: 'fa fa-columns' },
     });
 
-    // Wait for load event and force render
+    // Log plugin events
+    editor.on('plugin:loaded', (p) => {
+      console.log('✅ Plugin loaded:', p.id);
+    });
+
+    editor.on('plugin:error', (err) => {
+      console.error('❌ Plugin error:', err);
+    });
+
+    // Log block drag events
+    editor.on('block:drag:start', (block) => {
+      console.log('👉 Block drag start:', block.label || block.id);
+    });
+
+    editor.on('block:drag:stop', (block) => {
+      console.log('✅ Block drag stop:', block.label || block.id);
+    });
+
+    // Force render block manager after load
     editor.on('load', () => {
       console.log('✅ GrapesJS fully loaded');
 
       // Force render block manager
       setTimeout(() => {
         try {
-          console.log('🔄 Forcing block manager render...');
           editor.BlockManager.render();
-          console.log('✅ BlockManager.render() called');
+          console.log('✅ Force BlockManager.render() called');
         } catch (e) {
           console.warn('⚠️ BlockManager.render() error:', e.message);
         }
-      }, 300);
+      }, 200);
 
-      // Set categories for all blocks explicitly
+      // Force sidebar catalog visible
       setTimeout(() => {
-        const blocksToUpdate = ['text-block', 'image-block', 'button-block', 'section-block', 'columns-block'];
-        blocksToUpdate.forEach(blockId => {
-          const block = editor.BlockManager.get(blockId);
-          if (block) {
-            block.set('category', 'basic');
-            console.log('✅ Category set for:', blockId);
+        try {
+          const blocksPanelEl = document.querySelector('#blocks-panel');
+          if (blocksPanelEl) {
+            console.log('✅ Blocks panel found in DOM');
+            blocksPanelEl.style.display = 'block';
+            blocksPanelEl.style.visibility = 'visible';
+          } else {
+            console.warn('⚠️ Blocks panel #blocks-panel not found');
           }
-        });
+
+          // Try frame document catalog
+          const frameEl = editor.Canvas.getFrameEl();
+          if (frameEl && frameEl.contentDocument) {
+            const catalog = frameEl.contentDocument.querySelector('.gjs-blocks-catalog');
+            if (catalog) {
+              catalog.style.display = 'block !important';
+              catalog.style.visibility = 'visible !important';
+              console.log('✅ Sidebar catalog forced visible in frame');
+            } else {
+              console.warn('⚠️ Sidebar catalog not found in frame');
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ Catalog visibility error:', e.message);
+        }
       }, 500);
 
-      // Force refresh and check all blocks
+      // Log all registered blocks
       setTimeout(() => {
-        editor.refresh();
-        console.log('🔄 Canvas refreshed');
-
         const allBlocks = editor.BlockManager.getAll();
         const blocksList = allBlocks.map(b => `${b.id}: ${b.label} (cat: ${b.category})`);
         console.log('📦 All blocks registered:', blocksList);
         console.log('📊 Total blocks:', allBlocks.length);
-
-        if (allBlocks.length === 0) {
-          console.warn('⚠️ No blocks found! Check plugin loading.');
-        }
-      }, 700);
-
-      // Force sidebar catalog refresh by simulating interaction
-      setTimeout(() => {
-        try {
-          const catalogEl = document.querySelector('.gjs-blocks-catalog');
-          if (catalogEl) {
-            catalogEl.style.display = 'block';
-            catalogEl.dispatchEvent(new Event('click'));
-            console.log('✅ Sidebar catalog refresh triggered');
-          } else {
-            console.warn('⚠️ .gjs-blocks-catalog not found in DOM');
-          }
-        } catch (e) {
-          console.warn('⚠️ Sidebar refresh error:', e.message);
-        }
-      }, 1500);
+        console.log('✅ Editor ready for drag & drop');
+      }, 800);
     });
 
     return () => {
@@ -181,12 +170,29 @@ export default function Editor() {
   }, []);
 
   return (
-    <div style={{ height: '100vh', width: '100vw' }} id="gjs-editor">
+    <div style={{ height: '100vh', width: '100vw', display: 'flex', background: '#ffffff' }}>
+      {/* Sidebar: Block panel */}
+      <div 
+        id="blocks-panel" 
+        style={{ 
+          width: '250px', 
+          background: '#f8f9fa', 
+          borderRight: '1px solid #e5e7eb',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '10px',
+          boxSizing: 'border-box'
+        }} 
+      />
+      
+      {/* Main editor container */}
       <div 
         ref={containerRef} 
-        id="gjs"
-        className="gjs-editor"
-        style={{ height: '100%', width: '100%' }} 
+        style={{ 
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column'
+        }} 
       />
     </div>
   );
