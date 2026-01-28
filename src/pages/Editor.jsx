@@ -216,7 +216,7 @@ export default function Editor() {
     });
 
     editor.on('block:drag:stop', (block, ev) => {
-      console.log('✅ Block drag stop:', block ? (block.label || block.id) : 'unknown');
+      console.log('✅ Block drag stop:', block?.label || block?.id || 'unknown');
     });
 
     // Test export ZIP button
@@ -291,7 +291,37 @@ ${html}
         };
         
         document.body.appendChild(exportBtn);
+        
+        // Test reset tour button
+        const resetBtn = document.createElement('button');
+        resetBtn.id = 'reset-tour-btn';
+        resetBtn.innerText = '🔄 Reset Tour';
+        resetBtn.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 180px;
+          padding: 10px 20px;
+          background: #f59e0b;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: bold;
+          font-size: 14px;
+          z-index: 10000;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        `;
+        
+        resetBtn.onclick = () => {
+          localStorage.removeItem('citybuilder-tour-seen');
+          console.log('🔄 Tour reset - localStorage cleared');
+          window.location.reload();
+        };
+        
+        document.body.appendChild(resetBtn);
+        
         console.log('✅ Export ZIP button added to page');
+        console.log('✅ Reset tour button added to page');
       } catch (err) {
         console.warn('⚠️ Export button setup error:', err.message);
       }
