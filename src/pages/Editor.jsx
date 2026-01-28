@@ -4,7 +4,7 @@ import 'grapesjs/dist/css/grapes.min.css';
 
 /**
  * Editor Component - GrapesJS Integration
- * Uses dynamic imports + manual block registration to ensure blocks load
+ * Forces block catalog rendering with manual category assignment
  */
 export default function Editor() {
   const containerRef = useRef(null);
@@ -14,7 +14,7 @@ export default function Editor() {
 
     console.log('🚀 Initializing GrapesJS editor...');
 
-    // Dynamic import plugins to force load (prevent tree-shake)
+    // Dynamic import plugins to force load
     Promise.all([
       import('grapesjs-preset-webpage').then(() => console.log('✅ preset-webpage loaded dynamic')),
       import('grapesjs-blocks-basic').then(() => console.log('✅ blocks-basic loaded dynamic')),
@@ -56,6 +56,15 @@ export default function Editor() {
       console.error('❌ Plugin error:', err);
     });
 
+    // Log render events
+    editor.on('block:render', () => {
+      console.log('📦 Block rendered');
+    });
+
+    editor.on('block-manager:render', () => {
+      console.log('📦 Block manager rendered');
+    });
+
     // Log block drag events
     editor.on('block:drag:start', (block) => {
       console.log('👉 Block drag start:', block.label || block.id);
@@ -69,28 +78,28 @@ export default function Editor() {
     editor.BlockManager.add('text-block', {
       label: 'Text',
       content: '<p style="color: #333;">Text block - double click to edit</p>',
-      category: 'Basic',
+      category: 'basic',
       attributes: { class: 'fa fa-text' },
     });
 
     editor.BlockManager.add('image-block', {
       label: 'Image',
       content: '<img src="https://via.placeholder.com/350x150" alt="Image placeholder" style="width: 100%; height: auto;">',
-      category: 'Basic',
+      category: 'basic',
       attributes: { class: 'fa fa-image' },
     });
 
     editor.BlockManager.add('button-block', {
       label: 'Button',
       content: '<button style="padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Click me</button>',
-      category: 'Basic',
+      category: 'basic',
       attributes: { class: 'fa fa-button' },
     });
 
     editor.BlockManager.add('section-block', {
       label: 'Section',
       content: '<section style="padding: 40px 20px; background: #f0f0f0; border: 1px dashed #ccc; min-height: 200px;"><h2 style="color: #4f46e5;">Section Title</h2><p>Add your content here</p></section>',
-      category: 'Basic',
+      category: 'basic',
       attributes: { class: 'fa fa-th' },
     });
 
@@ -102,27 +111,67 @@ export default function Editor() {
           <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ddd;"><p>Column 2</p></div>
         </div>
       `,
-      category: 'Basic',
+      category: 'basic',
       attributes: { class: 'fa fa-columns' },
     });
 
-    // Wait for load event and log all blocks
+    // Wait for load event and force render
     editor.on('load', () => {
       console.log('✅ GrapesJS fully loaded');
-      editor.refresh();
 
+      // Force render block manager
       setTimeout(() => {
+        try {
+          console.log('🔄 Forcing block manager render...');
+          editor.BlockManager.render();
+          console.log('✅ BlockManager.render() called');
+        } catch (e) {
+          console.warn('⚠️ BlockManager.render() error:', e.message);
+        }
+      }, 300);
+
+      // Set categories for all blocks explicitly
+      setTimeout(() => {
+        const blocksToUpdate = ['text-block', 'image-block', 'button-block', 'section-block', 'columns-block'];
+        blocksToUpdate.forEach(blockId => {
+          const block = editor.BlockManager.get(blockId);
+          if (block) {
+            block.set('category', 'basic');
+            console.log('✅ Category set for:', blockId);
+          }
+        });
+      }, 500);
+
+      // Force refresh and check all blocks
+      setTimeout(() => {
+        editor.refresh();
+        console.log('🔄 Canvas refreshed');
+
         const allBlocks = editor.BlockManager.getAll();
-        const blocksList = allBlocks.map(b => `${b.id}: ${b.label}`);
+        const blocksList = allBlocks.map(b => `${b.id}: ${b.label} (cat: ${b.category})`);
         console.log('📦 All blocks registered:', blocksList);
         console.log('📊 Total blocks:', allBlocks.length);
 
         if (allBlocks.length === 0) {
-          console.warn('⚠️ No blocks found! Plugins may have failed.');
-        } else {
-          console.log('✅ Blocks loaded successfully');
+          console.warn('⚠️ No blocks found! Check plugin loading.');
         }
-      }, 500);
+      }, 700);
+
+      // Force sidebar catalog refresh by simulating interaction
+      setTimeout(() => {
+        try {
+          const catalogEl = document.querySelector('.gjs-blocks-catalog');
+          if (catalogEl) {
+            catalogEl.style.display = 'block';
+            catalogEl.dispatchEvent(new Event('click'));
+            console.log('✅ Sidebar catalog refresh triggered');
+          } else {
+            console.warn('⚠️ .gjs-blocks-catalog not found in DOM');
+          }
+        } catch (e) {
+          console.warn('⚠️ Sidebar refresh error:', e.message);
+        }
+      }, 1500);
     });
 
     return () => {
@@ -132,9 +181,11 @@ export default function Editor() {
   }, []);
 
   return (
-    <div style={{ height: '100vh', width: '100vw' }}>
+    <div style={{ height: '100vh', width: '100vw' }} id="gjs-editor">
       <div 
         ref={containerRef} 
+        id="gjs"
+        className="gjs-editor"
         style={{ height: '100%', width: '100%' }} 
       />
     </div>
