@@ -9,34 +9,34 @@ export default function OnboardingTour({ runTour, onFinish }) {
   const steps = [
     {
       target: 'body',
-      content: '🎉 Selamat datang di CityBuilder! Mau bikin website cantik hari ini? Mari kita mulai tur singkat.',
+      content: 'Hai! 👋 Selamat datang di CityBuilder. Mau bikin website keren hari ini? Ini tur singkat untuk jelajahi semua fitur.',
       placement: 'center',
       locale: { last: 'Selesai', skip: 'Lewati', next: 'Lanjut' },
       disableBeacon: true,
     },
     {
-      target: '.gjs-blocks-catalog',
-      content: '📦 Ini sidebar blocks. Drag & drop text, image, button, columns, forms ke canvas. Coba sekarang!',
+      target: '#blocks-panel',
+      content: '📦 Ini sidebar Blocks. Drag Text, Image, Button, Hero, About, Features, dll ke canvas untuk membangun website yang amazing.',
       placement: 'right',
     },
     {
       target: '.gjs-cv-canvas',
-      content: '✏️ Ini canvas utama. Drop block di sini, double-click untuk edit text inline, right-click untuk delete.',
+      content: '🎯 Ini canvas utama editor. Drop block di sini, double-click untuk edit text inline, atau drag untuk pindahkan elemen.',
       placement: 'bottom',
     },
     {
-      target: '.gjs-pn-views',
-      content: '⚙️ Panel kanan: Layers (struktur DOM), Styles (warna/font/spacing), Traits (setting elemen).',
+      target: '.gjs-pn-views-container',
+      content: '⚙️ Panel kanan: Layers untuk lihat struktur halaman, Styles untuk ubah warna/font/spacing, Traits untuk setting component.',
       placement: 'left',
     },
     {
-      target: '.gjs-pn-commands',
-      content: '🎨 Top toolbar: Undo/Redo, Preview (mobile/desktop), Settings, Export HTML/ZIP.',
-      placement: 'bottom',
+      target: '#export-zip-btn',
+      content: '⬇️ Setelah design selesai, klik tombol Export ZIP di sini untuk download website HTML + CSS. Siap upload ke hosting!',
+      placement: 'top',
     },
     {
       target: 'body',
-      content: '✅ Selesai tur! Sekarang coba tambah section baru, drag blocks, edit warna/text. Selamat berkreasi! 🚀',
+      content: '🚀 Oke siap! Sekarang coba drag block ke canvas, edit text, ubah warna, lalu export. Kalau ada yang kurang jelas, kasih tahu ya! Happy designing! 🎨',
       placement: 'center',
     },
   ];
@@ -58,7 +58,7 @@ export default function OnboardingTour({ runTour, onFinish }) {
       }}
       styles={{
         options: {
-          primaryColor: '#4f46e5',
+          primaryColor: '#667eea',
           backgroundColor: '#ffffff',
           arrowColor: '#ffffff',
           textColor: '#1f2937',
@@ -79,7 +79,7 @@ export default function OnboardingTour({ runTour, onFinish }) {
           fontSize: '14px',
         },
         buttonNext: {
-          backgroundColor: '#4f46e5',
+          backgroundColor: '#667eea',
           color: '#ffffff',
         },
         buttonSkip: {
@@ -88,6 +88,7 @@ export default function OnboardingTour({ runTour, onFinish }) {
       }}
       callback={(data) => {
         if (data.status === 'finished' || data.status === 'skipped') {
+          console.log(`✅ Onboarding tour ${data.status}`);
           onFinish();
         }
       }}
