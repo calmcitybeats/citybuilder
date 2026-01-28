@@ -15,6 +15,7 @@ import 'grapesjs-plugin-forms';
  * - Initial content to prevent blank canvas on load
  * - CSS import from grapesjs dist (explicit for production)
  * - Console debug logging for troubleshooting
+ * - Proper cleanup on unmount (destroy editor instance)
  */
 export default function Editor() {
   const editorContainerRef = useRef(null);
@@ -26,7 +27,7 @@ export default function Editor() {
       return;
     }
 
-    console.log('🚀 GrapesJS init in production mode');
+    console.log('🚀 GrapesJS init production mode');
 
     // Initialize GrapesJS with proper container reference
     const editor = grapesjs.init({
@@ -65,21 +66,19 @@ export default function Editor() {
     // This prevents the "Please reopen the preview" message
     editor.setComponents(`
       <div style="padding: 100px; text-align: center; font-family: system-ui, sans-serif;">
-        <h1 style="color: #6366f1; font-size: 2.5rem; margin-bottom: 20px; font-weight: bold;">
-          ✨ CityBuilder - GrapesJS Editor LIVE!
+        <h1 style="color: #6366f1; font-size: 3rem; margin-bottom: 20px; font-weight: bold;">
+          CityBuilder Editor LIVE di Netlify!
         </h1>
         <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px;">
-          Drag blocks dari sidebar kiri untuk mulai membangun website. Jika blank, cek console (F12).
+          Drag blocks dari sidebar kiri (text, image, button, columns, forms).
         </p>
-        <div style="display: inline-block; padding: 15px 30px; background: #6366f1; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem;">
-          👈 Start Building Here
-        </div>
+        <p style="color: #999; font-size: 0.95rem;">
+          Kalau blank, cek console browser (F12).
+        </p>
       </div>
     `);
 
-    // Log successful initialization
     console.log('✅ GrapesJS Editor initialized successfully');
-    console.log('🎨 Editor instance:', editor);
 
     // Force canvas resize/refresh after a short delay
     // This fixes the blank canvas issue on initial load in production
@@ -104,20 +103,18 @@ export default function Editor() {
     // Debug: Log canvas wrapper size after initialization
     // This helps verify that canvas has proper dimensions (not 0x0)
     setTimeout(() => {
-      if (editor.Canvas) {
+      if (editor && editor.Canvas) {
         const canvasWrapper = editor.Canvas.getWrapper();
         if (canvasWrapper && canvasWrapper.getEl()) {
           const rect = canvasWrapper.getEl().getBoundingClientRect();
-          console.log('📐 Canvas wrapper size (MUST be > 0):', {
+          console.log('📐 Canvas size (MUST be > 0):', {
             width: `${rect.width}px`,
             height: `${rect.height}px`,
-            x: `${rect.x}px`,
-            y: `${rect.y}px`,
           });
           if (rect.width === 0 || rect.height === 0) {
-            console.error('❌ CANVAS SIZE IS ZERO! Check container styles and parent layout.');
+            console.error('❌ CANVAS SIZE IS ZERO! Check container styles.');
           } else {
-            console.log('✅ Canvas size is OK');
+            console.log('✅ Canvas size OK');
           }
         }
       }
@@ -135,12 +132,18 @@ export default function Editor() {
   }, []);
 
   return (
-    <div style={{ height: '100vh', width: '100vw', position: 'relative', overflow: 'hidden' }} className="bg-gray-100">
+    <div 
+      style={{ 
+        height: '100vh', 
+        width: '100vw', 
+        position: 'relative', 
+        overflow: 'hidden' 
+      }} 
+      className="bg-gray-100"
+    >
       {/* GrapesJS Editor Container - using ref instead of id (more reliable in production) */}
       <div 
         ref={editorContainerRef} 
-        style={{ height: '100%', width: '100%' }} 
-      />
         style={{ height: '100%', width: '100%' }} 
       />
     </div>
