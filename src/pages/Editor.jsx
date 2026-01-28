@@ -4,10 +4,12 @@ import 'grapesjs/dist/css/grapes.min.css';
 import 'grapesjs-preset-webpage';
 import 'grapesjs-blocks-basic';
 import 'grapesjs-plugin-forms';
+import { templates } from '../plugins/templates/blocks.js';
 
 /**
  * Editor Component - GrapesJS Integration
  * Delays block registration until 'load' event with manual sidebar fallback
+ * Includes internal template library (Hero, About, Features, CTA, Footer)
  */
 export default function Editor() {
   const containerRef = useRef(null);
@@ -48,10 +50,10 @@ export default function Editor() {
 
     // Wait for load event - delay all registration
     editor.on('load', () => {
-      console.log('✅ Load event fired - registering blocks & category');
+      console.log('✅ Load event fired - registering blocks & categories');
 
       try {
-        // Create category
+        // Create Basic category
         editor.Categories.add({ 
           id: 'basic', 
           label: 'Basic Blocks', 
@@ -60,6 +62,18 @@ export default function Editor() {
         console.log('✅ Category created: basic');
       } catch (e) {
         console.warn('⚠️ Category creation error:', e.message);
+      }
+
+      try {
+        // Create Templates category
+        editor.Categories.add({ 
+          id: 'templates', 
+          label: 'Templates', 
+          open: true 
+        });
+        console.log('✅ Category created: templates');
+      } catch (e) {
+        console.warn('⚠️ Templates category error:', e.message);
       }
 
       // Register text block
@@ -127,6 +141,27 @@ export default function Editor() {
         console.warn('⚠️ Columns block error:', e.message);
       }
 
+      // Load template blocks from library
+      console.log(`📚 Loading ${templates.length} template blocks...`);
+      templates.forEach((templateBlock) => {
+        try {
+          editor.BlockManager.add(templateBlock.id, {
+            label: templateBlock.label,
+            content: templateBlock.content,
+            category: templateBlock.category || 'templates',
+          });
+        } catch (e) {
+          console.warn(`⚠️ Template block error [${templateBlock.id}]:`, e.message);
+        }
+      });
+      console.log(`✅ Templates library loaded: ${templates.length} blocks`);
+      const templateCount = templates.filter(t => t.category).reduce((acc, t) => {
+        const category = t.category;
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      }, {});
+      console.log('📊 Template breakdown by category:', templateCount);
+
       // Force block manager render
       setTimeout(() => {
         try {
@@ -161,7 +196,7 @@ export default function Editor() {
         const allBlocks = editor.BlockManager.getAll();
         const blocksList = allBlocks.map(b => `${b.id}: ${b.label}`);
         console.log('📦 All blocks after load:', blocksList);
-        console.log('📊 Total blocks:', allBlocks.length);
+        console.log('📊 Total blocks: 5 basic + ' + templates.length + ' templates = ' + allBlocks.length);
         console.log('✅ Editor ready for drag & drop');
       }, 800);
     });
