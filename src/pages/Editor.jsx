@@ -1,10 +1,14 @@
 import { useEffect, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
+// Force plugins load with dummy imports (prevent Vite tree-shake)
+import 'grapesjs-preset-webpage';
+import 'grapesjs-blocks-basic';
+import 'grapesjs-plugin-forms';
 
 /**
  * Editor Component - GrapesJS Integration
- * Production-safe plugin loading using string names (not ES module imports)
+ * Dummy imports force plugins to load even in production (Vite tree-shake prevention)
  */
 export default function Editor() {
   const containerRef = useRef(null);
@@ -40,7 +44,7 @@ export default function Editor() {
       </div>
     `);
 
-    // Log plugin loading events
+    // Log plugin load events
     editor.on('plugin:loaded', (p) => {
       console.log('✅ Plugin loaded:', p.id);
     });
@@ -49,27 +53,45 @@ export default function Editor() {
       console.error('❌ Plugin error:', err);
     });
 
-    // Wait for editor fully load before checking canvas size
+    // Log block drag events
+    editor.on('block:drag:start', (block) => {
+      console.log('👉 Block drag start:', block.label || block.id);
+    });
+
+    editor.on('block:drag:stop', (block) => {
+      console.log('✅ Block drag stop:', block.label || block.id);
+    });
+
+    // Wait for full load and check blocks
     editor.on('load', () => {
       console.log('✅ GrapesJS fully loaded');
       editor.refresh();
-      
+
+      // Delay block check to ensure plugins fully initialized
       setTimeout(() => {
-        try {
-          if (editor.Canvas) {
-            const canvasWrapper = editor.Canvas.getWrapper();
-            if (canvasWrapper && canvasWrapper.getEl()) {
-              const size = canvasWrapper.getEl().getBoundingClientRect();
-              console.log('📐 Canvas size after load:', size.width, 'x', size.height);
-              if (size.width > 0 && size.height > 0) {
-                console.log('✅ Canvas dimensions valid');
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('⚠️ Canvas size check failed:', e.message);
+        const allBlocks = editor.BlockManager.getAll();
+        const blockIds = allBlocks.map(b => b.id || b.label).slice(0, 10);
+        console.log('📦 Blocks available (first 10):', blockIds);
+        console.log('📊 Total blocks:', allBlocks.length);
+        
+        if (allBlocks.length === 0) {
+          console.warn('⚠️ No blocks found! Plugins may have failed to load.');
+          // Add test block if plugins failed
+          console.log('➕ Adding fallback test block...');
+          editor.BlockManager.add('test-text', {
+            label: '🧪 Test Text Block',
+            content: '<p style="color: red; font-weight: bold;">Drag me! (Fallback test block)</p>',
+            attributes: { class: 'test-block' },
+          });
         }
-      }, 500);
+      }, 1000);
+    });
+
+    // Add fallback test block anyway for testing
+    editor.BlockManager.add('test-text', {
+      label: '🧪 Test Text Block',
+      content: '<p style="color: red; font-weight: bold;">Drag me if sidebar still empty!</p>',
+      attributes: { class: 'test-block' },
     });
 
     return () => {
