@@ -1,58 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import 'grapesjs-preset-webpage';
 import 'grapesjs-blocks-basic';
 import 'grapesjs-plugin-forms';
-import OnboardingTour from '../components/onboarding/OnboardingTour';
 
 /**
- * Editor Component - GrapesJS Integration with Production-Safe Fixes
- * Visual website builder with drag-drop blocks, inline editing
- * 
- * Production Fixes:
- * - useRef for container (not id string - more reliable)
- * - Strong initial content to prevent blank canvas
- * - ResizeObserver for auto-refresh on resize
- * - Debug logs for troubleshooting
- * - Proper cleanup on unmount
- * 
- * Onboarding:
- * - Joyride tour on first visit (localStorage tracked)
- * - Guided steps for blocks, canvas, panels
+ * Editor Component - GrapesJS Integration
+ * Production-safe fixes for blank canvas issue on Netlify
  */
 export default function Editor() {
-  const editorContainerRef = useRef(null);
+  const containerRef = useRef(null);
   const editorRef = useRef(null);
-  const [runTour, setRunTour] = useState(false);
 
-  // Initialize onboarding tour
   useEffect(() => {
-    const hasSeenTour = localStorage.getItem('hasSeenTour');
-    if (!hasSeenTour) {
-      setRunTour(true);
-    }
-  }, []);
+    if (!containerRef.current || editorRef.current) return;
 
-  const handleTourFinish = () => {
-    localStorage.setItem('hasSeenTour', 'true');
-    setRunTour(false);
-  };
-
-  // Initialize GrapesJS editor
-  useEffect(() => {
-    // Only initialize once
-    if (!editorContainerRef.current || editorRef.current) {
-      return;
-    }
-
-    console.log('GrapesJS production init OK');
-
-    // Initialize GrapesJS with container ref (not id string)
     const editor = grapesjs.init({
-      container: editorContainerRef.current,
+      container: containerRef.current,
       fromElement: false,
-      height: '100%',
+      height: '100vh',
       width: '100%',
       storageManager: false,
       plugins: [
@@ -60,44 +27,49 @@ export default function Editor() {
         'grapesjs-blocks-basic',
         'grapesjs-plugin-forms',
       ],
-      pluginsOpts: {
-        'grapesjs-preset-webpage': {},
-        'grapesjs-blocks-basic': {},
-        'grapesjs-plugin-forms': {},
-      },
     });
 
     editorRef.current = editor;
 
-    // Strong initial content to prevent blank canvas in production
+    // Force initial content so canvas is not blank in production
     editor.setComponents(`
-      <section style="padding: 100px 20px; text-align: center; background: #f3f4f6; min-height: 100vh;">
-        <h1 style="color: #4f46e5; font-size: 3.5rem; margin-bottom: 1rem; font-weight: bold;">
-          CityBuilder GrapesJS LIVE!
+      <div style="padding: 80px; text-align: center; background: #f9fafb; min-height: 100vh;">
+        <h1 style="color: #4f46e5; font-size: 3rem; font-weight: bold; margin-bottom: 1.5rem;">
+          CityBuilder Editor LIVE di Netlify!
         </h1>
-        <p style="font-size: 1.5rem; color: #374151; line-height: 1.6;">
-          Drag &amp; drop blocks dari sidebar kiri sekarang.<br />
-          Edit text inline, tambah image/button/columns/forms.<br />
-          Kalau kosong, cek console browser.
+        <p style="font-size: 1.4rem; color: #4b5563; line-height: 1.8; margin-bottom: 2rem;">
+          Drag block dari sidebar kiri sekarang.<br/>
+          Edit text inline, tambah image/button/columns.<br/>
+          Kalau kosong, cek console browser (F12).
         </p>
-      </section>
+      </div>
     `);
 
-    // Force refresh after short delay
+    // Force refresh to ensure canvas renders
     setTimeout(() => {
       editor.refresh();
     }, 100);
 
-    // Debug: log canvas size after init
-    setTimeout(() => {
+    // ResizeObserver: auto-refresh canvas on container resize
+    const resizeObserver = new ResizeObserver(() => {
       if (editorRef.current) {
-        const size = editorRef.current.Canvas.getWrapper().getEl().getBoundingClientRect();
-        console.log('Canvas size live:', size.width, 'x', size.height);
+        editorRef.current.refresh();
       }
-    }, 500);
+    });
+    resizeObserver.observe(containerRef.current);
 
-    // Cleanup on unmount
+    // Debug log for troubleshooting
+    console.log('GrapesJS init di production');
+    setTimeout(() => {
+      if (editorRef.current && editorRef.current.Canvas) {
+        const size = editorRef.current.Canvas.getWrapper().getEl().getBoundingClientRect();
+        console.log('Canvas size di live:', size.width, 'x', size.height);
+      }
+    }, 800);
+
+    // Cleanup
     return () => {
+      resizeObserver.disconnect();
       if (editorRef.current) {
         editorRef.current.destroy();
         editorRef.current = null;
@@ -105,36 +77,12 @@ export default function Editor() {
     };
   }, []);
 
-  // ResizeObserver: auto-refresh canvas on container resize
-  useEffect(() => {
-    if (editorRef.current && editorContainerRef.current) {
-      const observer = new ResizeObserver(() => {
-        if (editorRef.current) {
-          editorRef.current.refresh();
-        }
-      });
-      observer.observe(editorContainerRef.current);
-      return () => observer.disconnect();
-    }
-  }, []);
-
   return (
-    <div 
-      style={{ 
-        height: '100vh', 
-        width: '100vw', 
-        position: 'relative', 
-        overflow: 'hidden',
-        backgroundColor: '#f3f4f6'
-      }}
-    >
+    <div style={{ height: '100vh', width: '100vw' }} className="bg-gray-50">
       <div 
-        ref={editorContainerRef} 
-        id="gjs-editor-container"
-        className="gjs-editor-container"
+        ref={containerRef} 
         style={{ height: '100%', width: '100%' }} 
       />
-      <OnboardingTour runTour={runTour} onFinish={handleTourFinish} />
     </div>
   );
 }
