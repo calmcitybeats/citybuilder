@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import grapesjs from 'grapesjs';
+import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
 import 'grapesjs-preset-webpage';
 import 'grapesjs-blocks-basic';
@@ -92,7 +93,7 @@ export default function Editor() {
       try {
         editor.BlockManager.add('image-block', {
           label: 'Image',
-          content: '<img src="https://via.placeholder.com/300x200" alt="Image" style="width: 100%; height: auto;">',
+          content: '<img src="https://picsum.photos/400/300?random=' + Math.random() + '" alt="Random Image" style="width: 100%; height: auto;">',
           category: 'basic',
         });
         console.log('✅ Block added: image-block');
@@ -214,9 +215,86 @@ export default function Editor() {
       console.log('👉 Block drag start:', block.label || block.id);
     });
 
-    editor.on('block:drag:stop', (block) => {
-      console.log('✅ Block drag stop:', block.label || block.id);
+    editor.on('block:drag:stop', (block, ev) => {
+      console.log('✅ Block drag stop:', block ? (block.label || block.id) : 'unknown');
     });
+
+    // Test export ZIP button
+    setTimeout(() => {
+      try {
+        const exportBtn = document.createElement('button');
+        exportBtn.innerText = '⬇ Export ZIP';
+        exportBtn.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          padding: 10px 20px;
+          background: #667eea;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: bold;
+          font-size: 14px;
+          z-index: 10000;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        `;
+        
+        exportBtn.onclick = async () => {
+          try {
+            console.log('📦 Exporting to ZIP...');
+            exportBtn.disabled = true;
+            exportBtn.innerText = '⏳ Exporting...';
+            
+            const zip = new JSZip();
+            const html = editor.getHtml();
+            const css = editor.getCss();
+            
+            zip.file('index.html', `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CityBuilder Export</title>
+  <style>${css}</style>
+</head>
+<body>
+${html}
+</body>
+</html>
+            `);
+            
+            zip.file('style.css', css);
+            zip.file('README.txt', 'Exported from CityBuilder\\nEdit index.html in your editor\\nAll styles included');
+            
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'citybuilder-export-' + new Date().toISOString().slice(0, 10) + '.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log('✅ ZIP exported successfully');
+            exportBtn.disabled = false;
+            exportBtn.innerText = '⬇ Export ZIP';
+          } catch (err) {
+            console.error('❌ Export error:', err);
+            exportBtn.disabled = false;
+            exportBtn.innerText = '⬇ Export ZIP';
+            alert('Export failed: ' + err.message);
+          }
+        };
+        
+        document.body.appendChild(exportBtn);
+        console.log('✅ Export ZIP button added to page');
+      } catch (err) {
+        console.warn('⚠️ Export button setup error:', err.message);
+      }
+    }, 1000);
 
     return () => {
       console.log('🧹 Destroying editor...');

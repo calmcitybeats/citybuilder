@@ -40,7 +40,7 @@ export const templates = [
           <p style="font-size: 1.1rem; color: #6b7280; line-height: 1.6; margin-bottom: 30px;">Create amazing content with our easy-to-use editor</p>
           <button style="padding: 12px 30px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Learn More</button>
         </div>
-        <img src="https://via.placeholder.com/400x300" alt="Hero" style="width: 100%; height: auto; border-radius: 8px;">
+        <img src="https://picsum.photos/400/300?random=1" alt="Hero" style="width: 100%; height: auto; border-radius: 8px;">
       </section>
     `,
   },
@@ -51,7 +51,7 @@ export const templates = [
     content: `
       <section style="background: black; color: white; padding: 80px 20px; text-align: center; position: relative;">
         <div style="position: relative; max-width: 800px; margin: 0 auto;">
-          <div style="background: url('https://via.placeholder.com/800x450') center/cover; height: 450px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
+          <div style="background: url('https://picsum.photos/800/450?random=2') center/cover; height: 450px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
             <button style="width: 80px; height: 80px; background: rgba(255,255,255,0.3); border: 3px solid white; border-radius: 50%; cursor: pointer; font-size: 30px; color: white;">▶</button>
           </div>
           <h2 style="font-size: 2rem; margin-bottom: 15px;">Watch Our Story</h2>
@@ -108,7 +108,7 @@ export const templates = [
     category: 'About',
     content: `
       <section style="padding: 60px 20px; background: #f9fafb; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; max-width: 1200px; margin: 0 auto;">
-        <img src="https://via.placeholder.com/400x400" alt="About" style="width: 100%; height: auto; border-radius: 8px;">
+        <img src="https://picsum.photos/400/400?random=3" alt="About" style="width: 100%; height: auto; border-radius: 8px;">
         <div>
           <h2 style="font-size: 2.5rem; color: #1f2937; margin-bottom: 20px;">Our Mission</h2>
           <p style="font-size: 1rem; color: #6b7280; line-height: 1.8; margin-bottom: 15px;">Empowering creators and entrepreneurs to build professional websites without technical barriers.</p>
@@ -127,17 +127,17 @@ export const templates = [
         <h2 style="font-size: 2.5rem; color: #1f2937; margin-bottom: 50px;">Meet Our Team</h2>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; max-width: 1000px; margin: 0 auto;">
           <div style="padding: 20px;">
-            <img src="https://via.placeholder.com/150x150" alt="Team member" style="width: 150px; height: 150px; border-radius: 50%; margin-bottom: 15px;">
+            <img src="https://picsum.photos/150/150?random=4" alt="Team member" style="width: 150px; height: 150px; border-radius: 50%; margin-bottom: 15px;">
             <h3 style="color: #1f2937; font-size: 1.2rem;">John Doe</h3>
             <p style="color: #6b7280;">Founder & CEO</p>
           </div>
           <div style="padding: 20px;">
-            <img src="https://via.placeholder.com/150x150" alt="Team member" style="width: 150px; height: 150px; border-radius: 50%; margin-bottom: 15px;">
+            <img src="https://picsum.photos/150/150?random=5" alt="Team member" style="width: 150px; height: 150px; border-radius: 50%; margin-bottom: 15px;">
             <h3 style="color: #1f2937; font-size: 1.2rem;">Jane Smith</h3>
             <p style="color: #6b7280;">Lead Designer</p>
           </div>
           <div style="padding: 20px;">
-            <img src="https://via.placeholder.com/150x150" alt="Team member" style="width: 150px; height: 150px; border-radius: 50%; margin-bottom: 15px;">
+            <img src="https://picsum.photos/150/150?random=6" alt="Team member" style="width: 150px; height: 150px; border-radius: 50%; margin-bottom: 15px;">
             <h3 style="color: #1f2937; font-size: 1.2rem;">Mike Johnson</h3>
             <p style="color: #6b7280;">Head Developer</p>
           </div>
