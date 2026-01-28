@@ -1,14 +1,10 @@
 import { useEffect, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
-// Force plugins load with dummy imports (prevent Vite tree-shake)
-import 'grapesjs-preset-webpage';
-import 'grapesjs-blocks-basic';
-import 'grapesjs-plugin-forms';
 
 /**
  * Editor Component - GrapesJS Integration
- * Dummy imports force plugins to load even in production (Vite tree-shake prevention)
+ * Uses dynamic imports + manual block registration to ensure blocks load
  */
 export default function Editor() {
   const containerRef = useRef(null);
@@ -17,6 +13,13 @@ export default function Editor() {
     if (!containerRef.current) return;
 
     console.log('🚀 Initializing GrapesJS editor...');
+
+    // Dynamic import plugins to force load (prevent tree-shake)
+    Promise.all([
+      import('grapesjs-preset-webpage').then(() => console.log('✅ preset-webpage loaded dynamic')),
+      import('grapesjs-blocks-basic').then(() => console.log('✅ blocks-basic loaded dynamic')),
+      import('grapesjs-plugin-forms').then(() => console.log('✅ plugin-forms loaded dynamic')),
+    ]).catch(err => console.error('❌ Dynamic import error:', err));
 
     const editor = grapesjs.init({
       container: containerRef.current,
@@ -44,7 +47,7 @@ export default function Editor() {
       </div>
     `);
 
-    // Log plugin load events
+    // Log plugin events
     editor.on('plugin:loaded', (p) => {
       console.log('✅ Plugin loaded:', p.id);
     });
@@ -62,36 +65,64 @@ export default function Editor() {
       console.log('✅ Block drag stop:', block.label || block.id);
     });
 
-    // Wait for full load and check blocks
+    // Register manual blocks (fallback if plugins fail)
+    editor.BlockManager.add('text-block', {
+      label: 'Text',
+      content: '<p style="color: #333;">Text block - double click to edit</p>',
+      category: 'Basic',
+      attributes: { class: 'fa fa-text' },
+    });
+
+    editor.BlockManager.add('image-block', {
+      label: 'Image',
+      content: '<img src="https://via.placeholder.com/350x150" alt="Image placeholder" style="width: 100%; height: auto;">',
+      category: 'Basic',
+      attributes: { class: 'fa fa-image' },
+    });
+
+    editor.BlockManager.add('button-block', {
+      label: 'Button',
+      content: '<button style="padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Click me</button>',
+      category: 'Basic',
+      attributes: { class: 'fa fa-button' },
+    });
+
+    editor.BlockManager.add('section-block', {
+      label: 'Section',
+      content: '<section style="padding: 40px 20px; background: #f0f0f0; border: 1px dashed #ccc; min-height: 200px;"><h2 style="color: #4f46e5;">Section Title</h2><p>Add your content here</p></section>',
+      category: 'Basic',
+      attributes: { class: 'fa fa-th' },
+    });
+
+    editor.BlockManager.add('columns-block', {
+      label: 'Columns (2)',
+      content: `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ddd;"><p>Column 1</p></div>
+          <div style="padding: 20px; background: #f9f9f9; border: 1px dashed #ddd;"><p>Column 2</p></div>
+        </div>
+      `,
+      category: 'Basic',
+      attributes: { class: 'fa fa-columns' },
+    });
+
+    // Wait for load event and log all blocks
     editor.on('load', () => {
       console.log('✅ GrapesJS fully loaded');
       editor.refresh();
 
-      // Delay block check to ensure plugins fully initialized
       setTimeout(() => {
         const allBlocks = editor.BlockManager.getAll();
-        const blockIds = allBlocks.map(b => b.id || b.label).slice(0, 10);
-        console.log('📦 Blocks available (first 10):', blockIds);
+        const blocksList = allBlocks.map(b => `${b.id}: ${b.label}`);
+        console.log('📦 All blocks registered:', blocksList);
         console.log('📊 Total blocks:', allBlocks.length);
-        
-        if (allBlocks.length === 0) {
-          console.warn('⚠️ No blocks found! Plugins may have failed to load.');
-          // Add test block if plugins failed
-          console.log('➕ Adding fallback test block...');
-          editor.BlockManager.add('test-text', {
-            label: '🧪 Test Text Block',
-            content: '<p style="color: red; font-weight: bold;">Drag me! (Fallback test block)</p>',
-            attributes: { class: 'test-block' },
-          });
-        }
-      }, 1000);
-    });
 
-    // Add fallback test block anyway for testing
-    editor.BlockManager.add('test-text', {
-      label: '🧪 Test Text Block',
-      content: '<p style="color: red; font-weight: bold;">Drag me if sidebar still empty!</p>',
-      attributes: { class: 'test-block' },
+        if (allBlocks.length === 0) {
+          console.warn('⚠️ No blocks found! Plugins may have failed.');
+        } else {
+          console.log('✅ Blocks loaded successfully');
+        }
+      }, 500);
     });
 
     return () => {
