@@ -6,15 +6,15 @@ import 'grapesjs-blocks-basic';
 import 'grapesjs-plugin-forms';
 
 /**
- * Editor Component - Full GrapesJS Integration with Canvas Fix
+ * Editor Component - Full GrapesJS Integration with Production Fixes
  * Provides a visual website builder with drag-drop blocks, inline editing, and more
  * 
- * Fixes:
- * - Uses useRef on actual DOM element instead of id string
- * - Explicit inline styles for container (height: 100vh, width: 100vw)
- * - Force canvas refresh with setTimeout to prevent "reopen preview" issue
- * - Initial content to prevent blank canvas
- * - Debug logging for canvas size verification
+ * Production Fixes:
+ * - Uses useRef on actual DOM element (reliable in production mode)
+ * - ResizeObserver to force canvas refresh (fixes blank canvas in static hosts)
+ * - Initial content to prevent blank canvas on load
+ * - CSS import from grapesjs dist (explicit for production)
+ * - Console debug logging for troubleshooting
  */
 export default function Editor() {
   const editorContainerRef = useRef(null);
@@ -26,9 +26,11 @@ export default function Editor() {
       return;
     }
 
+    console.log('🚀 GrapesJS init in production mode');
+
     // Initialize GrapesJS with proper container reference
     const editor = grapesjs.init({
-      // Use actual DOM element ref instead of id string
+      // Use actual DOM element ref instead of id string (more reliable in production)
       container: editorContainerRef.current,
       
       // Start with blank canvas (don't load existing HTML)
@@ -59,17 +61,17 @@ export default function Editor() {
     // Store editor instance in ref
     editorRef.current = editor;
 
-    // Set initial content so canvas is not blank
+    // Set initial content so canvas is not blank in production
     // This prevents the "Please reopen the preview" message
     editor.setComponents(`
-      <div style="padding: 50px; text-align: center; font-family: system-ui, sans-serif;">
-        <h1 style="color: #6366f1; font-size: 2.5rem; margin-bottom: 20px;">
-          ✨ CityBuilder - GrapesJS Editor Ready!
+      <div style="padding: 100px; text-align: center; font-family: system-ui, sans-serif;">
+        <h1 style="color: #6366f1; font-size: 2.5rem; margin-bottom: 20px; font-weight: bold;">
+          ✨ CityBuilder - GrapesJS Editor LIVE!
         </h1>
         <p style="color: #666; font-size: 1.1rem; margin-bottom: 30px;">
-          Drag blocks from the left sidebar to start building your website.
+          Drag blocks dari sidebar kiri untuk mulai membangun website. Jika blank, cek console (F12).
         </p>
-        <div style="display: inline-block; padding: 15px 30px; background: #6366f1; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">
+        <div style="display: inline-block; padding: 15px 30px; background: #6366f1; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem;">
           👈 Start Building Here
         </div>
       </div>
@@ -80,28 +82,47 @@ export default function Editor() {
     console.log('🎨 Editor instance:', editor);
 
     // Force canvas resize/refresh after a short delay
-    // This fixes the blank canvas issue on initial load
+    // This fixes the blank canvas issue on initial load in production
     setTimeout(() => {
       editor.refresh();
       console.log('🔄 Editor canvas refreshed');
     }, 100);
 
+    // ResizeObserver: automatically refresh canvas when container resizes
+    // This is critical for production deployments where container size might change
+    if (editorContainerRef.current) {
+      const observer = new ResizeObserver(() => {
+        if (editorRef.current && editorRef.current.refresh) {
+          console.log('📏 Container resized, refreshing canvas');
+          editorRef.current.refresh();
+        }
+      });
+      observer.observe(editorContainerRef.current);
+      console.log('👀 ResizeObserver attached to canvas container');
+    }
+
     // Debug: Log canvas wrapper size after initialization
+    // This helps verify that canvas has proper dimensions (not 0x0)
     setTimeout(() => {
       if (editor.Canvas) {
         const canvasWrapper = editor.Canvas.getWrapper();
         if (canvasWrapper && canvasWrapper.getEl()) {
           const rect = canvasWrapper.getEl().getBoundingClientRect();
-          console.log('📐 Canvas wrapper size:', {
-            width: rect.width,
-            height: rect.height,
-            x: rect.x,
-            y: rect.y,
+          console.log('📐 Canvas wrapper size (MUST be > 0):', {
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+            x: `${rect.x}px`,
+            y: `${rect.y}px`,
           });
+          if (rect.width === 0 || rect.height === 0) {
+            console.error('❌ CANVAS SIZE IS ZERO! Check container styles and parent layout.');
+          } else {
+            console.log('✅ Canvas size is OK');
+          }
         }
       }
-      console.log('✅ GrapesJS fully initialized and ready');
-    }, 500);
+      console.log('✅ GrapesJS fully initialized and ready for production');
+    }, 1000);
 
     // Cleanup function: Destroy editor on unmount to prevent memory leaks
     return () => {
@@ -114,10 +135,12 @@ export default function Editor() {
   }, []);
 
   return (
-    <div style={{ height: '100vh', width: '100vw', position: 'relative' }} className="bg-gray-100">
-      {/* GrapesJS Editor Container - using ref instead of id */}
+    <div style={{ height: '100vh', width: '100vw', position: 'relative', overflow: 'hidden' }} className="bg-gray-100">
+      {/* GrapesJS Editor Container - using ref instead of id (more reliable in production) */}
       <div 
         ref={editorContainerRef} 
+        style={{ height: '100%', width: '100%' }} 
+      />
         style={{ height: '100%', width: '100%' }} 
       />
     </div>
