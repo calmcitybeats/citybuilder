@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import 'grapesjs-preset-webpage';
 import 'grapesjs-blocks-basic';
 import 'grapesjs-plugin-forms';
+import OnboardingTour from '../components/onboarding/OnboardingTour';
 
 /**
  * Editor Component - GrapesJS Integration with Production-Safe Fixes
@@ -15,10 +16,28 @@ import 'grapesjs-plugin-forms';
  * - ResizeObserver for auto-refresh on resize
  * - Debug logs for troubleshooting
  * - Proper cleanup on unmount
+ * 
+ * Onboarding:
+ * - Joyride tour on first visit (localStorage tracked)
+ * - Guided steps for blocks, canvas, panels
  */
 export default function Editor() {
   const editorContainerRef = useRef(null);
   const editorRef = useRef(null);
+  const [runTour, setRunTour] = useState(false);
+
+  // Initialize onboarding tour
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem('hasSeenTour');
+    if (!hasSeenTour) {
+      setRunTour(true);
+    }
+  }, []);
+
+  const handleTourFinish = () => {
+    localStorage.setItem('hasSeenTour', 'true');
+    setRunTour(false);
+  };
 
   // Initialize GrapesJS editor
   useEffect(() => {
@@ -111,8 +130,11 @@ export default function Editor() {
     >
       <div 
         ref={editorContainerRef} 
+        id="gjs-editor-container"
+        className="gjs-editor-container"
         style={{ height: '100%', width: '100%' }} 
       />
+      <OnboardingTour runTour={runTour} onFinish={handleTourFinish} />
     </div>
   );
 }
