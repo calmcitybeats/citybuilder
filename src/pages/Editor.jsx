@@ -223,6 +223,7 @@ export default function Editor() {
     setTimeout(() => {
       try {
         const exportBtn = document.createElement('button');
+        exportBtn.id = 'export-zip-btn';
         exportBtn.innerText = '⬇ Export ZIP';
         exportBtn.style.cssText = `
           position: fixed;
