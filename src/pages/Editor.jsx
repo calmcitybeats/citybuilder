@@ -2,9 +2,15 @@ import { useEffect, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import JSZip from 'jszip';
 import 'grapesjs/dist/css/grapes.min.css';
+
+// CRITICAL: Force Vite to keep plugin imports (prevent tree-shaking)
 import 'grapesjs-preset-webpage';
 import 'grapesjs-blocks-basic';
 import 'grapesjs-plugin-forms';
+// Dummy usage to force Vite to include these plugins
+const dummy = window.GrapesjsPresetWebpage || window.GrapesjsBlocksBasic || window.GrapesjsPluginForms || undefined;
+console.log('🔌 Plugins loaded:', dummy);
+
 import { templates } from '../plugins/templates/blocks.js';
 
 /**
@@ -53,28 +59,31 @@ export default function Editor() {
     editor.on('load', () => {
       console.log('✅ Load event fired - registering blocks & categories');
 
-      try {
-        // Create Basic category
-        editor.Categories.add({ 
-          id: 'basic', 
-          label: 'Basic Blocks', 
-          open: true 
-        });
-        console.log('✅ Category created: basic');
-      } catch (e) {
-        console.warn('⚠️ Category creation error:', e.message);
-      }
+      // CRITICAL: Check if Categories exists before adding
+      if (editor.Categories && typeof editor.Categories.add === 'function') {
+        try {
+          editor.Categories.add({ 
+            id: 'basic', 
+            label: 'Basic Blocks', 
+            open: true 
+          });
+          console.log('✅ Category created: basic');
+        } catch (e) {
+          console.warn('⚠️ Category creation error:', e.message);
+        }
 
-      try {
-        // Create Templates category
-        editor.Categories.add({ 
-          id: 'templates', 
-          label: 'Templates', 
-          open: true 
-        });
-        console.log('✅ Category created: templates');
-      } catch (e) {
-        console.warn('⚠️ Templates category error:', e.message);
+        try {
+          editor.Categories.add({ 
+            id: 'templates', 
+            label: 'Templates', 
+            open: true 
+          });
+          console.log('✅ Category created: templates');
+        } catch (e) {
+          console.warn('⚠️ Templates category error:', e.message);
+        }
+      } else {
+        console.warn('⚠️ Categories API not available - plugins may not have loaded');
       }
 
       // Register text block
@@ -173,18 +182,36 @@ export default function Editor() {
         }
       }, 200);
 
-      // Force catalog visible
+      // CRITICAL: Force sidebar catalog visible and try multiple selectors
       setTimeout(() => {
         try {
           const frameEl = editor.Canvas.getFrameEl();
           if (frameEl && frameEl.contentDocument) {
-            const catalog = frameEl.contentDocument.querySelector('.gjs-blocks-catalog');
-            if (catalog) {
-              catalog.style.display = 'block !important';
-              catalog.style.visibility = 'visible !important';
+            // Try multiple selectors for the catalog
+            const catalogSelectors = [
+              '.gjs-blocks-catalog',
+              '[data-gjs-blocks="content"]',
+              '.gjs-blocks',
+              '[class*="catalog"]'
+            ];
+            
+            let foundCatalog = null;
+            for (const selector of catalogSelectors) {
+              foundCatalog = frameEl.contentDocument.querySelector(selector);
+              if (foundCatalog) {
+                console.log('✅ Catalog found with selector:', selector);
+                break;
+              }
+            }
+            
+            if (foundCatalog) {
+              foundCatalog.style.display = 'block !important';
+              foundCatalog.style.visibility = 'visible !important';
+              foundCatalog.style.opacity = '1 !important';
               console.log('✅ Sidebar catalog forced visible');
             } else {
-              console.warn('⚠️ Sidebar catalog not found in frame - using manual panel fallback');
+              console.warn('⚠️ Sidebar catalog not found in frame - blocks appending to #blocks-panel directly');
+              // The panel fallback in JSX will handle display
             }
           }
         } catch (e) {
@@ -250,24 +277,53 @@ export default function Editor() {
             const zip = new JSZip();
             const html = editor.getHtml();
             const css = editor.getCss();
+            const js = editor.getJs();
             
-            zip.file('index.html', `
-<!DOCTYPE html>
-<html lang="en">
+            // Create comprehensive index.html
+            const fullHtml = `<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Website created with CityBuilder">
   <title>CityBuilder Export</title>
-  <style>${css}</style>
+  <style>
+${css}
+  </style>
 </head>
 <body>
 ${html}
+  <script>
+${js}
+  </script>
 </body>
-</html>
-            `);
+</html>`;
             
+            zip.file('index.html', fullHtml);
             zip.file('style.css', css);
-            zip.file('README.txt', 'Exported from CityBuilder\\nEdit index.html in your editor\\nAll styles included');
+            if (js && js.trim().length > 0) {
+              zip.file('script.js', js);
+            }
+            zip.file('README.md', `# Website exported from CityBuilder
+
+This is a clean, production-ready website exported from CityBuilder.
+
+## Files
+- **index.html** - Main HTML file with embedded styles and scripts
+- **style.css** - Standalone CSS (also embedded in index.html)
+- **script.js** - JavaScript functionality (if any)
+
+## How to use
+1. Open \`index.html\` in your browser to view the website
+2. Edit HTML/CSS as needed in your preferred editor
+3. Upload to any web hosting service (GitHub Pages, Netlify, Vercel, etc.)
+
+## Notes
+- All styles are included inline in HTML for simplicity
+- Images used are from external CDNs (check image URLs if offline)
+- No build process required - files work as-is
+
+Made with ❤️ by CityBuilder`);
             
             const blob = await zip.generateAsync({ type: 'blob' });
             const url = URL.createObjectURL(blob);
@@ -279,7 +335,7 @@ ${html}
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            console.log('✅ ZIP exported successfully');
+            console.log('✅ ZIP exported successfully - HTML size:', fullHtml.length, 'bytes');
             exportBtn.disabled = false;
             exportBtn.innerText = '⬇ Export ZIP';
           } catch (err) {
